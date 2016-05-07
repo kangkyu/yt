@@ -1,11 +1,11 @@
 require 'yt/collections/base'
-require 'yt/models/video_group'
+require 'yt/models/channel_group'
 require 'yt/models/group_info'
 
 module Yt
   module Collections
     # @private
-    class VideoGroups < Base
+    class ChannelGroups < Base
 
     private
 
@@ -14,7 +14,7 @@ module Yt
       end
 
       def new_item(data)
-        super if data['contentDetails']['itemType'] == 'youtube#video'
+        super if data['contentDetails']['itemType'] == 'youtube#channel'
       end
 
       def list_params

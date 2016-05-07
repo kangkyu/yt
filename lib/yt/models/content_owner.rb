@@ -65,7 +65,7 @@ module Yt
       # @private
       # Tells `has_many :video_groups` that content_owner.video_groups should
       # return all the video-groups *on behalf of* the content owner
-      def video_groups_params
+      def groups_params
         {on_behalf_of_content_owner: @owner_name}
       end
     end

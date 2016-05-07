@@ -11,6 +11,7 @@ module Yt
       def attributes_for_new_item(data)
         super(data).tap do |attributes|
           attributes[:video] = data['video']
+          attributes[:channel] = data['channel']
         end
       end
 
@@ -34,6 +35,18 @@ module Yt
             items.each do |item|
               video = videos.find{|v| v.id == item['resource']['id']}
               item['video'] = video if video
+            end
+          end
+        end
+        if included_relationships.include?(:channel)
+          all_channel_ids = items.map{|item| item['resource']['id']}.uniq
+          all_channel_ids.each_slice(50) do |channel_ids|
+            conditions = {id: channel_ids.join(',')}
+            conditions[:part] = 'snippet,status,statistics,contentDetails'
+            channels = Collections::Channels.new(auth: @auth).where conditions
+            items.each do |item|
+              channel = channels.find{|v| v.id == item['resource']['id']}
+              item['channel'] = channel if channel
             end
           end
         end

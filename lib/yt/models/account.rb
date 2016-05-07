@@ -164,6 +164,7 @@ module Yt
       #   @return [Yt::Collections::VideoGroups] the video-groups created by the
       #     account.
       has_many :video_groups
+      has_many :channel_groups
 
     ### PRIVATE API ###
 
@@ -188,7 +189,7 @@ module Yt
       # @private
       # Tells `has_many :video_groups` that content_owner.groups should return
       # all the video-groups *owned by* the account
-      def video_groups_params
+      def groups_params
         {mine: true}
       end
 
