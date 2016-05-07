@@ -24,6 +24,10 @@ module Yt
       #   @return [Time] the date and time when the group was created.
       delegate :published_at, to: :group_info
 
+      # @!attribute [r] item_type
+      #   @return [String] the type of of the group.
+      delegate :item_type, to: :group_info
+
     ### ASSOCIATIONS ###
 
       # @!attribute [r] group_items

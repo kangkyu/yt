@@ -11,6 +11,7 @@ module Yt
       has_attribute :title, default: ''
       has_attribute :item_count, type: Integer
       has_attribute :published_at, type: Time
+      has_attribute :item_type, default: ''
     end
   end
 end
