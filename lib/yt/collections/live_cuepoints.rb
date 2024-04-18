@@ -22,10 +22,10 @@ module Yt
       end
 
       # @return [Hash] the parameters to submit to YouTube to add a live cuepoint.
-      # @see https://developers.google.com/youtube/v3/live/docs/liveCuepoints/insert
+      # @see https://developers.google.com/youtube/v3/live/docs/liveBroadcasts/cuepoint
       def insert_params
         super.tap do |params|
-          params[:path] = '/youtube/partner/v1/liveCuepoints'
+          params[:path] = '/youtube/v3/liveBroadcasts/cuepoint'
         end
       end
 
