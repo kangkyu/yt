@@ -18,7 +18,7 @@ module Yt
       private
 
       def body_params
-        [:broadcast_id, :settings]
+        [:id, :cue_type, :insertion_offset_time_ms, :walltime_ms, :duration_secs]
       end
 
       # @return [Hash] the parameters to submit to YouTube to add a live cuepoint.
