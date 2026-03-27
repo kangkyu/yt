@@ -132,6 +132,17 @@ module Yt
         end
       end
 
+      # Uploads all remaining chunks and returns the completed video.
+      #
+      # @return [Yt::Video] the uploaded video
+      def perform
+        loop do
+          bytes_uploaded, video = next_chunk
+          return video if video
+        end
+        puts "#{bytes_uploaded}/#{session.file_size} bytes"
+      end
+
       def complete?
         @complete
       end
