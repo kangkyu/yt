@@ -87,6 +87,38 @@ module Yt
         end
       end
 
+      # Uploads a video using the resumable upload protocol with chunked
+      # uploads. Returns a {ResumableUploadSession} that is already
+      # initiated and ready for +next_chunk+.
+      #
+      # @param path_or_url [String] local path or remote URL to the video file.
+      # @param params [Hash] video metadata and upload options.
+      # @option params [String]  :title          The video's title.
+      # @option params [String]  :description    The video's description.
+      # @option params [Array<String>] :tags     The video's tags.
+      # @option params [Integer] :category_id    The video's category ID.
+      # @option params [String]  :privacy_status The video's privacy status.
+      # @option params [Boolean] :self_declared_made_for_kids The video's made for kids self-declaration.
+      # @option params [Integer] :chunk_size     Bytes per chunk (0 = whole file).
+      # @option params [Integer] :max_retries    Max retries per chunk (default: 10).
+      # @return [Yt::Models::ResumableUploadSession] initiated session ready for next_chunk.
+      #
+      # @example
+      #   session = account.resumable_upload_video('video.mp4',
+      #     title: 'My Video', chunk_size: 10_000_000)
+      #   loop do
+      #     bytes_uploaded, video = session.next_chunk
+      #     if video
+      #       puts video.id
+      #       break
+      #     end
+      #   end
+      def resumable_upload_video(path_or_url, params = {})
+        file = URI.open(path_or_url)
+        upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries], file_path: file.path }
+        resumable_upload_sessions.insert file.size, upload_body(params), upload_options
+      end
+
       # Creates a playlist in the account’s channel.
       # @return [Yt::Models::Playlist] the newly created playlist.
       # @param [Hash] params the attributes of the playlist.
@@ -175,6 +207,8 @@ module Yt
       #     account.
       has_many :video_groups
 
+      has_many :resumable_upload_sessions
+
     ### PRIVATE API ###
 
       has_authentication
@@ -211,6 +245,7 @@ module Yt
       def upload_path
         '/upload/youtube/v3/videos'
       end
+
       # @private
       # Tells `has_many :resumable_sessions` what params are set for the object
       # associated to the uploaded file.
