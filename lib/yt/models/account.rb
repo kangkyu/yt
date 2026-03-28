@@ -114,18 +114,17 @@ module Yt
       #     end
       #   end
       def resumable_upload_video(path_or_url, params = {})
+        remote_auth = params.delete(:remote_auth)
         upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries] }
 
         if path_or_url.match?(%r{\Ahttps?://})
-          file_size = remote_file_size(path_or_url)
           upload_options[:remote_url] = path_or_url
+          upload_options[:remote_auth] = remote_auth
         else
-          file = File.new(path_or_url)
-          file_size = file.size
           upload_options[:file_path] = path_or_url
         end
 
-        resumable_upload_sessions.insert file_size, upload_body(params), upload_options
+        resumable_upload_sessions.insert upload_body(params), upload_options
       end
 
       # Creates a playlist in the account’s channel.
@@ -265,17 +264,6 @@ module Yt
       # @private
       # Tells `has_many :resumable_sessions` what metadata to set in the object
       # associated to the uploaded file.
-      def remote_file_size(url)
-        uri = URI.parse(url)
-        Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
-          request = Net::HTTP::Head.new(uri)
-          request['Authorization'] = "Bearer #{access_token}"
-          response = http.request(request)
-          raise "Cannot determine remote file size: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
-          response['Content-Length'].to_i
-        end
-      end
-
       def upload_body(params = {})
         {}.tap do |body|
           snippet = params.slice :title, :description, :tags, :category_id

@@ -40,17 +40,12 @@ module Yt
         @auth           = options[:auth]
         @file_path      = options[:file_path]
         @remote_url     = options[:remote_url]
+        @remote_auth    = options[:remote_auth]
         @content_type   = options.fetch(:content_type, 'video/*')
         @chunk_size     = align_chunk_size(options.fetch(:chunk_size, 0))
         @max_retries    = options.fetch(:max_retries, 10)
 
-        if @file_path
-          raise ArgumentError, "File not found: #{@file_path}" unless File.exist?(@file_path)
-          raise ArgumentError, "File is empty: #{@file_path}"  if File.size(@file_path).zero?
-          @file_size = File.size(@file_path)
-        else
-          @file_size = options[:file_size]
-        end
+        @file_size = options[:file_size]
 
         @bytes_uploaded   = 0
         @file_handle      = nil
@@ -231,7 +226,7 @@ module Yt
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
-        request['Authorization'] = "Bearer #{@auth.access_token}"
+        request['Authorization'] = @remote_auth.call
         request['Range'] = "bytes=#{offset}-#{chunk_end}"
         response = ensure_remote_http.request(request)
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)
