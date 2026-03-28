@@ -137,8 +137,8 @@ module Yt
         loop do
           bytes_uploaded, video = next_chunk
           return video if video
+          yield bytes_uploaded, @file_size if block_given?
         end
-        puts "#{bytes_uploaded}/#{session.file_size} bytes"
       end
 
       def complete?
