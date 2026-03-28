@@ -114,9 +114,20 @@ module Yt
       #     end
       #   end
       def resumable_upload_video(path_or_url, params = {})
-        file = URI.open(path_or_url)
-        upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries], file_path: file.path }
-        resumable_upload_sessions.insert file.size, upload_body(params), upload_options
+        headers = params.delete(:headers) || {}
+        upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries] }
+
+        if path_or_url.match?(%r{\Ahttps?://})
+          file_size = remote_file_size(path_or_url, headers)
+          upload_options[:remote_url] = path_or_url
+          upload_options[:remote_headers] = headers
+        else
+          file = File.new(path_or_url)
+          file_size = file.size
+          upload_options[:file_path] = path_or_url
+        end
+
+        resumable_upload_sessions.insert file_size, upload_body(params), upload_options
       end
 
       # Creates a playlist in the account’s channel.
@@ -256,6 +267,17 @@ module Yt
       # @private
       # Tells `has_many :resumable_sessions` what metadata to set in the object
       # associated to the uploaded file.
+      def remote_file_size(url, headers = {})
+        uri = URI.parse(url)
+        Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+          request = Net::HTTP::Head.new(uri)
+          headers.each { |k, v| request[k] = v }
+          response = http.request(request)
+          raise "Cannot determine remote file size: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+          response['Content-Length'].to_i
+        end
+      end
+
       def upload_body(params = {})
         {}.tap do |body|
           snippet = params.slice :title, :description, :tags, :category_id

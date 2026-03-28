@@ -36,17 +36,21 @@ module Yt
       attr_reader :uri, :file_size, :bytes_uploaded
 
       def initialize(options = {})
-        @uri          = options[:url] ? URI.parse(options[:url]) : nil
-        @auth         = options[:auth]
-        @file_path    = options[:file_path]
-        @content_type = options.fetch(:content_type, 'video/*')
-        @chunk_size   = align_chunk_size(options.fetch(:chunk_size, 0))
-        @max_retries  = options.fetch(:max_retries, 10)
+        @uri            = options[:url] ? URI.parse(options[:url]) : nil
+        @auth           = options[:auth]
+        @file_path      = options[:file_path]
+        @remote_url     = options[:remote_url]
+        @remote_headers = options[:remote_headers] || {}
+        @content_type   = options.fetch(:content_type, 'video/*')
+        @chunk_size     = align_chunk_size(options.fetch(:chunk_size, 0))
+        @max_retries    = options.fetch(:max_retries, 10)
 
         if @file_path
           raise ArgumentError, "File not found: #{@file_path}" unless File.exist?(@file_path)
           raise ArgumentError, "File is empty: #{@file_path}"  if File.size(@file_path).zero?
           @file_size = File.size(@file_path)
+        else
+          @file_size = options[:file_size]
         end
 
         @bytes_uploaded = 0
@@ -66,14 +70,17 @@ module Yt
         raise "No session URI — was initiation successful?" unless @uri
         raise "Upload already complete" if @complete
 
-        ensure_file_open
-
         offset    = @bytes_uploaded
         chunk_end = [offset + effective_chunk_size - 1, @file_size - 1].min
         length    = chunk_end - offset + 1
 
-        @file_handle.seek(offset)
-        chunk_data = @file_handle.read(length)
+        chunk_data = if @remote_url
+          read_remote_chunk(offset, chunk_end)
+        else
+          ensure_file_open
+          @file_handle.seek(offset)
+          @file_handle.read(length)
+        end
 
         unless chunk_data && chunk_data.bytesize == length
           raise "Failed to read #{length} bytes at offset #{offset}"
@@ -223,6 +230,22 @@ module Yt
         return server_retry_after if server_retry_after && server_retry_after > 0
         max_delay = [64.0, 1.0 * (2**attempt)].min
         rand * max_delay
+      end
+
+      def read_remote_chunk(offset, chunk_end)
+        uri = URI.parse(@remote_url)
+        Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+          http.open_timeout = 30
+          http.read_timeout = 300
+          request = Net::HTTP::Get.new(uri)
+          @remote_headers.each { |k, v| request[k] = v }
+          request['Range'] = "bytes=#{offset}-#{chunk_end}"
+          response = http.request(request)
+          unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)
+            raise "Remote read failed: HTTP #{response.code}"
+          end
+          response.body
+        end
       end
 
       def ensure_file_open
