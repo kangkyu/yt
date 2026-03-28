@@ -40,7 +40,6 @@ module Yt
         @auth           = options[:auth]
         @file_path      = options[:file_path]
         @remote_url     = options[:remote_url]
-        @remote_headers = options[:remote_headers] || {}
         @content_type   = options.fetch(:content_type, 'video/*')
         @chunk_size     = align_chunk_size(options.fetch(:chunk_size, 0))
         @max_retries    = options.fetch(:max_retries, 10)
@@ -232,7 +231,7 @@ module Yt
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
-        @remote_headers.each { |k, v| request[k] = v }
+        request['Authorization'] = "Bearer #{@auth.access_token}"
         request['Range'] = "bytes=#{offset}-#{chunk_end}"
         response = ensure_remote_http.request(request)
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)

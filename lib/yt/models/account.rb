@@ -114,13 +114,11 @@ module Yt
       #     end
       #   end
       def resumable_upload_video(path_or_url, params = {})
-        headers = params.delete(:headers) || {}
         upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries] }
 
         if path_or_url.match?(%r{\Ahttps?://})
-          file_size = remote_file_size(path_or_url, headers)
+          file_size = remote_file_size(path_or_url)
           upload_options[:remote_url] = path_or_url
-          upload_options[:remote_headers] = headers
         else
           file = File.new(path_or_url)
           file_size = file.size
@@ -267,11 +265,11 @@ module Yt
       # @private
       # Tells `has_many :resumable_sessions` what metadata to set in the object
       # associated to the uploaded file.
-      def remote_file_size(url, headers = {})
+      def remote_file_size(url)
         uri = URI.parse(url)
         Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
           request = Net::HTTP::Head.new(uri)
-          headers.each { |k, v| request[k] = v }
+          request['Authorization'] = "Bearer #{access_token}"
           response = http.request(request)
           raise "Cannot determine remote file size: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
           response['Content-Length'].to_i

@@ -20,7 +20,6 @@ module Yt
           content_type: @parent.upload_content_type,
           file_path: @insert_options[:file_path],
           remote_url: @insert_options[:remote_url],
-          remote_headers: @insert_options[:remote_headers],
           file_size: @insert_options[:file_size],
           chunk_size: @insert_options.fetch(:chunk_size, 0),
           max_retries: @insert_options.fetch(:max_retries, 10)
