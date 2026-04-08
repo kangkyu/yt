@@ -30,6 +30,26 @@ module Yt
     #     end
     #     puts "#{bytes_uploaded}/#{session.file_size} bytes"
     #   end
+    #
+    #   or (on Rails 8)
+    #
+    #   session = account.resumable_upload_video(
+    #     drive_url,
+    #     remote_auth: -> { account.access_token },
+    #     title: 'My Video',
+    #     privacy_status: 'private',
+    #     self_declared_made_for_kids: false,
+    #     chunk_size: 10 * 1024 * 1024
+    #   )
+    #   video = session.perform do |bytes_uploaded, file_size|
+    #     percent = (bytes_uploaded * 100.0 / file_size).round
+    #     upload.broadcast_replace_to(
+    #       [user, "uploads"],
+    #       target: "upload_progress_#{upload.id}",
+    #       partial: "uploads/progress",
+    #       locals: { upload: upload, percent: percent }
+    #     )
+    #   end
     class ResumableUploadSession < Base
       CHUNK_ALIGNMENT = 256 * 1024
 
@@ -86,7 +106,7 @@ module Yt
 
         response = with_retries do
           req = Net::HTTP::Put.new(@uri.request_uri)
-          req['Authorization']  = "Bearer #{@auth.access_token}"
+          req['Authorization']  = "Bearer #{auth_token}"
           req['Content-Length'] = length.to_s
           req['Content-Type']  = @content_type
           req['Content-Range'] = content_range
@@ -111,7 +131,7 @@ module Yt
           http.use_ssl = true
 
           req = Net::HTTP::Put.new(@uri.request_uri)
-          req['Authorization']  = "Bearer #{@auth.access_token}"
+          req['Authorization']  = "Bearer #{auth_token}"
           req['Content-Length'] = '0'
           req['Content-Range']  = "bytes */#{@file_size}"
 
@@ -226,7 +246,7 @@ module Yt
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
-        request['Authorization'] = @remote_auth.call
+        request['Authorization'] = "Bearer #{auth_token}"
         request['Range'] = "bytes=#{offset}-#{chunk_end}"
         response = ensure_remote_http.request(request)
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)
@@ -298,6 +318,10 @@ module Yt
           Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::EPIPE,
           Net::OpenTimeout, Net::ReadTimeout, IOError, SocketError,
         ]
+      end
+
+      def auth_token
+        @remote_auth.call || @auth.access_token
       end
     end
   end

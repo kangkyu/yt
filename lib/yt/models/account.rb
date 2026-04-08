@@ -102,29 +102,8 @@ module Yt
       # @option params [Integer] :chunk_size     Bytes per chunk (0 = whole file).
       # @option params [Integer] :max_retries    Max retries per chunk (default: 10).
       # @return [Yt::Models::ResumableUploadSession] initiated session ready for next_chunk.
-      #
-      # @example
-      #   session = account.resumable_upload_video('video.mp4',
-      #     title: 'My Video', chunk_size: 10_000_000)
-      #   loop do
-      #     bytes_uploaded, video = session.next_chunk
-      #     if video
-      #       puts video.id
-      #       break
-      #     end
-      #   end
       def resumable_upload_video(path_or_url, params = {})
-        remote_auth = params.delete(:remote_auth)
-        upload_options = { chunk_size: params[:chunk_size], max_retries: params[:max_retries] }
-
-        if path_or_url.match?(%r{\Ahttps?://})
-          upload_options[:remote_url] = path_or_url
-          upload_options[:remote_auth] = remote_auth
-        else
-          upload_options[:file_path] = path_or_url
-        end
-
-        resumable_upload_sessions.insert upload_body(params), upload_options
+        resumable_upload_sessions.insert upload_body(params), upload_options(path_or_url, params)
       end
 
       # Creates a playlist in the account’s channel.
@@ -204,17 +183,21 @@ module Yt
       #     the account’s channel.
       has_many :subscribers
 
+      # @!attribute [r] video_groups
+      #   @return [Yt::Collections::VideoGroups] the video-groups created by the
+      #     account.
+      has_many :video_groups
+
       # @!attribute [r] resumable_sessions
       #   @private
       #   @return [Yt::Collections::ResumableSessions] the sessions used to
       #     upload videos using the resumable upload protocol.
       has_many :resumable_sessions
 
-      # @!attribute [r] video_groups
-      #   @return [Yt::Collections::VideoGroups] the video-groups created by the
-      #     account.
-      has_many :video_groups
-
+      # @!attribute [r] resumable_upload_sessions
+      #   @private
+      #   @return [Yt::Collections::ResumableUploadSessions] the sessions used to
+      #     upload videos using the resumable upload protocol.
       has_many :resumable_upload_sessions
 
     ### PRIVATE API ###
@@ -262,8 +245,8 @@ module Yt
       end
 
       # @private
-      # Tells `has_many :resumable_sessions` what metadata to set in the object
-      # associated to the uploaded file.
+      # Tells `has_many :resumable_sessions` or `has_many :resumable_upload_sessions`
+      # what metadata to set in the object associated to the uploaded file.
       def upload_body(params = {})
         {}.tap do |body|
           snippet = params.slice :title, :description, :tags, :category_id
@@ -276,6 +259,21 @@ module Yt
           body[:status] = {}
           body[:status][:privacyStatus] = privacy_status if privacy_status
           body[:status][:selfDeclaredMadeForKids] = self_declared_made_for_kids unless self_declared_made_for_kids.nil?
+        end
+      end
+
+      # @private
+      # Tells `has_many :resumable_upload_sessions` about where to how
+      def upload_options(path_or_url, params = {})
+        remote_auth = params.delete(:remote_auth)
+
+        params.slice(:file_size, :chunk_size).tap do |options|
+          if path_or_url.match?(%r{\Ahttps?://})
+            options[:remote_url] = path_or_url
+            options[:remote_auth] = remote_auth if remote_auth
+          else
+            options[:file_path] = path_or_url
+          end
         end
       end
 
