@@ -20,7 +20,9 @@ module Yt
         req['Authorization'] = "Bearer #{params[:token]}"
 
         body = params[:body]
-        if body.respond_to?(:read)
+        if body.nil?
+          # no body (e.g. status check)
+        elsif body.respond_to?(:read)
           req.body_stream = body
           req['Transfer-Encoding'] = 'chunked'
         else

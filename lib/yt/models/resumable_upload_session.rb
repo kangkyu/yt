@@ -129,15 +129,12 @@ module Yt
         raise "No session URI" unless @uri
 
         response = with_retries do
-          http = Net::HTTP.new(@uri.host, @uri.port)
-          http.use_ssl = true
-
-          req = Net::HTTP::Put.new(@uri.request_uri)
-          req['Authorization']  = "Bearer #{auth_token}"
-          req['Content-Length'] = '0'
-          req['Content-Range']  = "bytes */#{@file_size}"
-
-          http.request(req)
+          do_upload(
+            headers: {
+              'Content-Length' => '0',
+              'Content-Range'  => "bytes */#{@file_size}",
+            },
+          ) { |r| r }
         end
 
         case response.code.to_i
