@@ -61,7 +61,7 @@ module Yt
         file = URI.open(path_or_url)
         session = resumable_sessions.insert file.size, params
 
-        session.update(body: file) do |data|
+        session.upload(body: file) do |data|
           Yt::Reference.new id: data['id'], data: data, auth: self
         end
       end

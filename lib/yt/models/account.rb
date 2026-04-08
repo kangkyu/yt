@@ -77,7 +77,7 @@ module Yt
         file = URI.open(path_or_url)
         session = resumable_sessions.insert file.size, upload_body(params)
 
-        session.update(body: file) do |data|
+        session.upload(body: file) do |data|
           Yt::Video.new(
             id: data['id'],
             snippet: data['snippet'],

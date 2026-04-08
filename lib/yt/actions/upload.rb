@@ -1,0 +1,43 @@
+require 'net/http'
+require 'yt/actions/base'
+
+module Yt
+  module Actions
+    module Upload
+      include Base
+
+    private
+
+      # Yielding the raw response so callers
+      # handle status codes themselves.
+      def do_upload(params = {})
+        uri = params[:uri]
+        http = params[:http] || new_upload_http(uri)
+
+        req = Net::HTTP::Put.new(uri.request_uri)
+        params.fetch(:headers, {}).each { |k, v| req[k] = v }
+        req['Authorization'] = "Bearer #{params[:token]}"
+
+        body = params[:body]
+        if body.respond_to?(:read)
+          req.body_stream = body
+          req['Transfer-Encoding'] = 'chunked'
+        else
+          req.body = body
+        end
+
+        response = http.request(req)
+        yield response
+      end
+
+      def new_upload_http(uri)
+        Net::HTTP.new(uri.host, uri.port).tap do |http|
+          http.use_ssl = uri.scheme == 'https'
+          http.open_timeout = 30
+          http.read_timeout = 300
+          http.start
+        end
+      end
+    end
+  end
+end

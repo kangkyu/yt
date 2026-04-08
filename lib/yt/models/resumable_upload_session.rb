@@ -4,6 +4,7 @@ require 'net/http' # for Net::HTTP.start
 require 'uri' # for URI.parse
 require 'json' # for JSON.parse
 require 'yt/models/base'
+require 'yt/actions/upload'
 
 module Yt
   module Models
@@ -51,6 +52,7 @@ module Yt
     #     )
     #   end
     class ResumableUploadSession < Base
+      include Actions::Upload
       CHUNK_ALIGNMENT = 256 * 1024
 
       attr_reader :uri, :file_size, :bytes_uploaded
@@ -105,14 +107,17 @@ module Yt
         content_range = "bytes #{offset}-#{chunk_end}/#{@file_size}"
 
         response = with_retries do
-          req = Net::HTTP::Put.new(@uri.request_uri)
-          req['Authorization']  = "Bearer #{auth_token}"
-          req['Content-Length'] = length.to_s
-          req['Content-Type']  = @content_type
-          req['Content-Range'] = content_range
-          req.body = chunk_data
-
-          ensure_upload_http.request(req)
+          do_upload(
+            uri: @uri,
+            http: ensure_upload_http,
+            token: auth_token,
+            headers: {
+              'Content-Length' => length.to_s,
+              'Content-Type'   => @content_type,
+              'Content-Range'  => content_range,
+            },
+            body: chunk_data
+          ) { |r| r }
         end
 
         handle_chunk_response(response, chunk_end)
