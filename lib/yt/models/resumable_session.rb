@@ -20,8 +20,6 @@ module Yt
       def upload(params = {})
         body = params[:body]
         do_upload(
-          uri: @uri,
-          token: @auth.access_token,
           headers: upload_headers(body),
           body: body
         ) do |response|
@@ -36,8 +34,6 @@ module Yt
       # @see https://developers.google.com/youtube/v3/docs/thumbnails#resource
       def upload_thumbnail(file)
         do_upload(
-          uri: @uri,
-          token: @auth.access_token,
           headers: upload_headers(file),
           body: file
         ) do |response|
@@ -47,6 +43,10 @@ module Yt
       end
 
       private
+
+      def upload_params
+        { uri: @uri, token: @auth.access_token }
+      end
 
       def upload_headers(body)
         @headers.merge('Content-Length' => body.size.to_s)

@@ -108,9 +108,6 @@ module Yt
 
         response = with_retries do
           do_upload(
-            uri: @uri,
-            http: ensure_upload_http,
-            token: auth_token,
             headers: {
               'Content-Length' => length.to_s,
               'Content-Type'   => @content_type,
@@ -171,6 +168,10 @@ module Yt
       end
 
       private
+
+      def upload_params
+        { uri: @uri, token: auth_token, http: ensure_upload_http }
+      end
 
       def handle_chunk_response(response, chunk_end)
         code = response.code.to_i
