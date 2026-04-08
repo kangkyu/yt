@@ -324,7 +324,7 @@ module Yt
       end
 
       def auth_token
-        @remote_auth.call || @auth.access_token
+        @remote_auth&.call || @auth.access_token
       end
     end
   end
