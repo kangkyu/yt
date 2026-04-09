@@ -104,17 +104,8 @@ module Yt
           raise "Failed to read #{length} bytes at offset #{offset}"
         end
 
-        content_range = "bytes #{offset}-#{chunk_end}/#{@file_size}"
-
         response = with_retries do
-          do_upload(
-            headers: {
-              'Content-Length' => length.to_s,
-              'Content-Type'   => @content_type,
-              'Content-Range'  => content_range,
-            },
-            body: chunk_data
-          ) { |r| r }
+          do_upload headers: upload_headers(length, offset, chunk_end), body: chunk_data
         end
 
         handle_chunk_response(response, chunk_end)
@@ -129,12 +120,7 @@ module Yt
         raise "No session URI" unless @uri
 
         response = with_retries do
-          do_upload(
-            headers: {
-              'Content-Length' => '0',
-              'Content-Range'  => "bytes */#{@file_size}",
-            },
-          ) { |r| r }
+          do_upload headers: upload_headers(0)
         end
 
         case response.code.to_i
@@ -168,6 +154,15 @@ module Yt
 
       def upload_params
         { uri: @uri, token: auth_token, http: ensure_upload_http }
+      end
+
+      def upload_headers(length, offset = nil, chunk_end = nil)
+        {
+          'Content-Length' => length.to_s,
+          'Content-Range'  => offset ? "bytes #{offset}-#{chunk_end}/#{@file_size}" : "bytes */#{@file_size}",
+        }.tap do |headers|
+          headers['Content-Type'] = @content_type if offset
+        end
       end
 
       def handle_chunk_response(response, chunk_end)

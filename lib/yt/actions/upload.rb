@@ -30,7 +30,7 @@ module Yt
         end
 
         response = http.request(req)
-        yield response
+        block_given? ? yield(response) : response
       end
 
       def upload_params

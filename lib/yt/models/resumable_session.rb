@@ -19,10 +19,7 @@ module Yt
 
       def upload(params = {})
         body = params[:body]
-        do_upload(
-          headers: upload_headers(body),
-          body: body
-        ) do |response|
+        do_upload headers: upload_headers(body), body: body do |response|
           yield JSON.parse(response.body)
         end
       end
@@ -33,10 +30,7 @@ module Yt
       # @return the new thumbnail resource for the given image.
       # @see https://developers.google.com/youtube/v3/docs/thumbnails#resource
       def upload_thumbnail(file)
-        do_upload(
-          headers: upload_headers(file),
-          body: file
-        ) do |response|
+        do_upload headers: upload_headers(file), body: file do |response|
           data = JSON.parse(response.body)
           data['items'].first
         end
