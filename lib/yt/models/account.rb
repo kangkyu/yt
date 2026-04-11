@@ -265,11 +265,13 @@ module Yt
       # @private
       # Tells `has_many :resumable_upload_sessions` about where to how
       def upload_options(path_or_url, params = {})
+        remote_url_auth = params.delete(:remote_url_auth)
         remote_auth = params.delete(:remote_auth)
 
         params.slice(:file_size, :chunk_size).tap do |options|
           if path_or_url.match?(%r{\Ahttps?://})
             options[:remote_url] = path_or_url
+            options[:remote_url_auth] = remote_url_auth if remote_url_auth
             options[:remote_auth] = remote_auth if remote_auth
           else
             options[:file_path] = path_or_url

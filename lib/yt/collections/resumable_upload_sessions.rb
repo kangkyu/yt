@@ -8,10 +8,13 @@ module Yt
     class ResumableUploadSessions < Base
 
       def insert(body = {}, options = {})
+        @remote_url_auth = options[:remote_url_auth]
         content_length = resolve_file_size(options)
+
         @insert_options = options.merge(file_size: content_length)
-        @remote_auth = options[:remote_auth]
         @headers = headers_for content_length
+
+        @remote_auth = options[:remote_auth]
         do_insert body: body, headers: @headers
       end
 
@@ -24,6 +27,7 @@ module Yt
           attributes[:chunk_size] = @insert_options.fetch(:chunk_size, 0)
           attributes[:max_retries] = @insert_options.fetch(:max_retries, 10)
           attributes[:auth] = @auth
+          attributes[:remote_url_auth] = @remote_url_auth
           attributes[:remote_auth] = @remote_auth
         end
       end
@@ -45,7 +49,7 @@ module Yt
 
           Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
             request = Net::HTTP::Head.new(uri)
-            request['Authorization'] = "Bearer #{auth_token}"
+            request['Authorization'] = "Bearer #{remote_url_auth_token}"
             response = http.request(request)
             raise "Cannot determine remote file size: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
             response['Content-Length'].to_i
@@ -65,8 +69,8 @@ module Yt
         response.header
       end
 
-      def auth_token
-        @remote_auth&.call || @auth.access_token
+      def remote_url_auth_token
+        @remote_url_auth&.call || @auth.access_token
       end
     end
   end

@@ -37,6 +37,7 @@ module Yt
     #   session = account.resumable_upload_video(
     #     drive_url,
     #     remote_auth: -> { account.access_token },
+    #     remote_url_auth: -> { user.access_token },
     #     title: 'My Video',
     #     privacy_status: 'private',
     #     self_declared_made_for_kids: false,
@@ -62,7 +63,8 @@ module Yt
         @auth           = options[:auth]
         @file_path      = options[:file_path]
         @remote_url     = options[:remote_url]
-        @remote_auth    = options[:remote_auth]
+        @remote_url_auth = options[:remote_url_auth]
+        @remote_auth = options[:remote_auth]
         @content_type   = options.fetch(:content_type, 'video/*')
         @chunk_size     = align_chunk_size(options.fetch(:chunk_size, 0))
         @max_retries    = options.fetch(:max_retries, 10)
@@ -153,7 +155,7 @@ module Yt
       private
 
       def upload_params
-        { uri: @uri, token: auth_token, http: ensure_upload_http }
+        { uri: @uri, token: remote_auth_token, http: ensure_upload_http }
       end
 
       def upload_headers(length, offset = nil, chunk_end = nil)
@@ -244,7 +246,7 @@ module Yt
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
-        request['Authorization'] = "Bearer #{auth_token}"
+        request['Authorization'] = "Bearer #{remote_url_auth_token}"
         request['Range'] = "bytes=#{offset}-#{chunk_end}"
         response = ensure_remote_http.request(request)
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)
@@ -318,8 +320,12 @@ module Yt
         ]
       end
 
-      def auth_token
+      def remote_auth_token
         @remote_auth&.call || @auth.access_token
+      end
+
+      def remote_url_auth_token
+        @remote_url_auth&.call || @remote_auth&.call || @auth.access_token
       end
     end
   end
