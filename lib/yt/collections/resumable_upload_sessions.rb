@@ -42,6 +42,8 @@ module Yt
       end
 
       def resolve_file_size(options)
+        return options[:file_size] if options[:file_size]
+
         if options[:file_path]
           File.size(options[:file_path])
         elsif options[:remote_url]
