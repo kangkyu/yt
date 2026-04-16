@@ -49,7 +49,8 @@ module Yt
 
           Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
             request = Net::HTTP::Head.new(uri)
-            request['Authorization'] = "Bearer #{remote_url_auth_token}"
+            token = remote_url_auth_token
+            request['Authorization'] = "Bearer #{token}" if token.present?
             response = http.request(request)
             raise "Cannot determine remote file size: HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
             response['Content-Length'].to_i
@@ -70,7 +71,8 @@ module Yt
       end
 
       def remote_url_auth_token
-        @remote_url_auth&.call || @auth.access_token
+        return @remote_url_auth.call if @remote_url_auth
+        @auth.access_token
       end
     end
   end

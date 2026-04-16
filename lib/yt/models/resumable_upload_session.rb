@@ -246,7 +246,8 @@ module Yt
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
-        request['Authorization'] = "Bearer #{remote_url_auth_token}"
+        token = remote_url_auth_token
+        request['Authorization'] = "Bearer #{token}" if token.present?
         request['Range'] = "bytes=#{offset}-#{chunk_end}"
         response = ensure_remote_http.request(request)
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPPartialContent)
@@ -325,7 +326,8 @@ module Yt
       end
 
       def remote_url_auth_token
-        @remote_url_auth&.call || @remote_auth&.call || @auth.access_token
+        return @remote_url_auth.call if @remote_url_auth
+        @remote_auth&.call || @auth.access_token
       end
     end
   end
