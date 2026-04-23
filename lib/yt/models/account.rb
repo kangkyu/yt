@@ -284,7 +284,7 @@ module Yt
         remote_url_auth = params.delete(:remote_url_auth)
         remote_auth = params.delete(:remote_auth)
 
-        params.slice(:file_size, :chunk_size).tap do |options|
+        params.slice(:file_size, :chunk_size, :on_behalf_of_content_owner_channel).tap do |options|
           if path_or_url.match?(%r{\Ahttps?://})
             options[:remote_url] = path_or_url
             options[:remote_url_auth] = remote_url_auth if remote_url_auth

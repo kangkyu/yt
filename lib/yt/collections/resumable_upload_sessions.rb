@@ -37,7 +37,11 @@ module Yt
           params[:response_format] = nil
           params[:path] = @parent.resumable_upload_path
           # params[:method] = :post
-          params[:params] = @parent.resumable_upload_params.merge uploadType: 'resumable'
+          query = @parent.resumable_upload_params.merge(uploadType: 'resumable')
+          if (channel = @insert_options[:on_behalf_of_content_owner_channel])
+            query[:on_behalf_of_content_owner_channel] = channel
+          end
+          params[:params] = query
         end
       end
 
