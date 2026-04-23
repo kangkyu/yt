@@ -255,8 +255,10 @@ module Yt
 
       # @private
       # Tells `has_many :resumable_upload_sessions` what params are set for
-      # the object associated to the chunked video upload.
-      def resumable_upload_params
+      # the object associated to the chunked video upload. Subclasses (e.g.
+      # ContentOwner) read per-call values from `options` such as
+      # `:on_behalf_of_content_owner_channel`.
+      def resumable_upload_params(_options = {})
         {part: 'snippet,status'}
       end
 
