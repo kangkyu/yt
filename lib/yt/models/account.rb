@@ -245,6 +245,22 @@ module Yt
       end
 
       # @private
+      # Tells `has_many :resumable_upload_sessions` what path to hit for
+      # chunked video uploads. Kept separate from `upload_path` so subclasses
+      # (e.g. ContentOwner) can point `upload_path` at a different resource
+      # without breaking video uploads.
+      def resumable_upload_path
+        '/upload/youtube/v3/videos'
+      end
+
+      # @private
+      # Tells `has_many :resumable_upload_sessions` what params are set for
+      # the object associated to the chunked video upload.
+      def resumable_upload_params
+        {part: 'snippet,status'}
+      end
+
+      # @private
       # Tells `has_many :resumable_sessions` or `has_many :resumable_upload_sessions`
       # what metadata to set in the object associated to the uploaded file.
       def upload_body(params = {})

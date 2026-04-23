@@ -101,6 +101,13 @@ module Yt
       end
 
       # @private
+      # Chunked video uploads (`resumable_upload_video`) target the videos
+      # endpoint on behalf of the content owner, not the references endpoint.
+      def resumable_upload_params
+        {part: 'snippet,status', on_behalf_of_content_owner: self.owner_name}
+      end
+
+      # @private
       # Tells `has_many :video_groups` that content_owner.video_groups should
       # return all the video-groups *on behalf of* the content owner
       def video_groups_params

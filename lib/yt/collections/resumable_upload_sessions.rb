@@ -35,9 +35,9 @@ module Yt
       def insert_params
         super.tap do |params|
           params[:response_format] = nil
-          params[:path] = @parent.upload_path
+          params[:path] = @parent.resumable_upload_path
           # params[:method] = :post
-          params[:params] = @parent.upload_params.merge uploadType: 'resumable'
+          params[:params] = @parent.resumable_upload_params.merge uploadType: 'resumable'
         end
       end
 
