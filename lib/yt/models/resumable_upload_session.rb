@@ -65,6 +65,7 @@ module Yt
         @remote_url     = options[:remote_url]
         @remote_url_auth = options[:remote_url_auth]
         @remote_auth = options[:remote_auth]
+        @remote_url_refresh = options[:remote_url_refresh]
         @content_type   = options.fetch(:content_type, 'video/*')
         @chunk_size     = align_chunk_size(options.fetch(:chunk_size, 0))
         @max_retries    = options.fetch(:max_retries, 10)
@@ -95,7 +96,7 @@ module Yt
         length    = chunk_end - offset + 1
 
         chunk_data = if @remote_url
-          read_remote_chunk(offset, chunk_end)
+          read_remote_chunk_with_retries(offset, chunk_end)
         else
           ensure_file_open
           @file_handle.seek(offset)
@@ -174,7 +175,7 @@ module Yt
         when 200, 201
           @complete = true
           @bytes_uploaded = @file_size
-          close_file_handle
+          release_resources
 
           data = JSON.parse(response.body)
           video = Yt::Video.new(
@@ -190,10 +191,10 @@ module Yt
 
           [@bytes_uploaded, nil]
         when 404
-          close_file_handle
+          release_resources
           raise Yt::Errors::RequestError, "Session URI expired (404). Start a new upload."
         else
-          close_file_handle
+          release_resources
           detail = begin
             parsed = JSON.parse(response.body)
             err = parsed.dig('error', 'errors', 0) || {}
@@ -243,6 +244,29 @@ module Yt
         rand * max_delay
       end
 
+      def read_remote_chunk_with_retries(offset, chunk_end)
+        attempts = 0
+        last_success = true
+        loop do
+          if @remote_url_refresh
+            new_url = @remote_url_refresh.call(last_success)
+            if new_url && new_url != @remote_url
+              @remote_url = new_url
+              @remote_http = finish_http(@remote_http)
+            end
+          end
+
+          begin
+            return read_remote_chunk(offset, chunk_end)
+          rescue => e
+            last_success = false
+            attempts += 1
+            raise if attempts > @max_retries
+            sleep retry_delay(attempts)
+          end
+        end
+      end
+
       def read_remote_chunk(offset, chunk_end)
         uri = URI.parse(@remote_url)
         request = Net::HTTP::Get.new(uri)
@@ -261,37 +285,38 @@ module Yt
       end
 
       def ensure_remote_http
-        if @remote_http.nil? || !@remote_http.started?
-          uri = URI.parse(@remote_url)
-          @remote_http = Net::HTTP.new(uri.host, uri.port)
-          @remote_http.use_ssl = uri.scheme == 'https'
-          @remote_http.open_timeout = 30
-          @remote_http.read_timeout = 300
-          @remote_http.keep_alive_timeout = 120
-          @remote_http.start
-        end
-        @remote_http
+        return @remote_http if @remote_http&.started?
+        uri = URI.parse(@remote_url)
+        @remote_http = start_http(uri.host, uri.port, use_ssl: uri.scheme == 'https')
       end
 
       def ensure_upload_http
-        if @upload_http.nil? || !@upload_http.started?
-          @upload_http = Net::HTTP.new(@uri.host, @uri.port)
-          @upload_http.use_ssl = true
-          @upload_http.open_timeout = 30
-          @upload_http.read_timeout = 300
-          @upload_http.keep_alive_timeout = 120
-          @upload_http.start
-        end
-        @upload_http
+        return @upload_http if @upload_http&.started?
+        @upload_http = start_http(@uri.host, @uri.port, use_ssl: true)
       end
 
-      def close_file_handle
+      def release_resources
         @file_handle&.close
         @file_handle = nil
-        @remote_http&.finish if @remote_http&.started?
-        @remote_http = nil
-        @upload_http&.finish if @upload_http&.started?
-        @upload_http = nil
+        @remote_http = finish_http(@remote_http)
+        @upload_http = finish_http(@upload_http)
+      end
+
+      def start_http(host, port, use_ssl:)
+        http = Net::HTTP.new(host, port)
+        http.use_ssl = use_ssl
+        http.open_timeout = 30
+        http.read_timeout = 300
+        http.keep_alive_timeout = 120
+        http.start
+        http
+      end
+
+      def finish_http(http)
+        http.finish if http&.started?
+        nil
+      rescue
+        nil
       end
 
       def effective_chunk_size

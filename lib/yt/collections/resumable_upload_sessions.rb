@@ -29,6 +29,7 @@ module Yt
           attributes[:auth] = @auth
           attributes[:remote_url_auth] = @remote_url_auth
           attributes[:remote_auth] = @remote_auth
+          attributes[:remote_url_refresh] = @insert_options[:remote_url_refresh]
         end
       end
 
