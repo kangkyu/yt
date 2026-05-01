@@ -245,26 +245,23 @@ module Yt
       end
 
       # @private
-      # Tells `has_many :resumable_upload_sessions` what path to hit for
-      # chunked video uploads. Kept separate from `upload_path` so subclasses
-      # (e.g. ContentOwner) can point `upload_path` at a different resource
-      # without breaking video uploads.
+      # Tells `has_many :resumable_upload_sessions` what path to hit to upload
+      # a file. Separate from `upload_path` so ContentOwner can override
+      # `upload_path` for references without affecting chunked video uploads.
       def resumable_upload_path
         '/upload/youtube/v3/videos'
       end
 
       # @private
-      # Tells `has_many :resumable_upload_sessions` what params are set for
-      # the object associated to the chunked video upload. Subclasses (e.g.
-      # ContentOwner) read per-call values from `options` such as
-      # `:on_behalf_of_content_owner_channel`.
+      # Tells `has_many :resumable_upload_sessions` what params are set for the
+      # object associated to the uploaded file.
       def resumable_upload_params(_options = {})
         {part: 'snippet,status'}
       end
 
       # @private
-      # Tells `has_many :resumable_sessions` or `has_many :resumable_upload_sessions`
-      # what metadata to set in the object associated to the uploaded file.
+      # Tells `has_many :resumable_sessions` what metadata to set in the object
+      # associated to the uploaded file.
       def upload_body(params = {})
         {}.tap do |body|
           snippet = params.slice :title, :description, :tags, :category_id
@@ -281,7 +278,8 @@ module Yt
       end
 
       # @private
-      # Tells `has_many :resumable_upload_sessions` about where to how
+      # Tells `has_many :resumable_upload_sessions` how to read the file —
+      # locally from disk or by ranged GETs against a remote URL.
       def upload_options(path_or_url, params = {})
         remote_url_auth = params.delete(:remote_url_auth)
         remote_auth = params.delete(:remote_auth)

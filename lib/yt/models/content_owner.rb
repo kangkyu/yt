@@ -101,11 +101,9 @@ module Yt
       end
 
       # @private
-      # Chunked video uploads (`resumable_upload_video`) target the videos
-      # endpoint on behalf of the content owner, not the references endpoint.
       # YouTube requires `onBehalfOfContentOwnerChannel` alongside
-      # `onBehalfOfContentOwner` on `videos.insert`; caller supplies it via
-      # `:on_behalf_of_content_owner_channel` in the upload params.
+      # `onBehalfOfContentOwner` on `videos.insert`; the caller passes it
+      # through `:on_behalf_of_content_owner_channel`.
       def resumable_upload_params(options = {})
         params = {part: 'snippet,status', on_behalf_of_content_owner: owner_name}
         if (channel = options[:on_behalf_of_content_owner_channel])

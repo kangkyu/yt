@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'net/http' # for Net::HTTP.start
-require 'uri' # for URI.parse
-require 'json' # for JSON.parse
+require 'net/http'
+require 'uri'
+require 'json'
 require 'yt/models/base'
 require 'yt/actions/upload'
 
@@ -18,39 +18,26 @@ module Yt
     #
     # @see https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol
     #
-    # @example
+    # @example Drive the upload chunk by chunk.
     #   session = account.resumable_upload_video('video.mp4',
     #     title: 'My Video',
     #     chunk_size: 10 * 1024 * 1024
     #   )
     #   loop do
     #     bytes_uploaded, video = session.next_chunk
-    #     if video
-    #       puts "Done! #{video.id}"
-    #       break
-    #     end
+    #     break video if video
     #     puts "#{bytes_uploaded}/#{session.file_size} bytes"
     #   end
     #
-    #   or (on Rails 8)
-    #
-    #   session = account.resumable_upload_video(
-    #     drive_url,
-    #     remote_auth: -> { account.access_token },
+    # @example Upload from a remote URL with progress reporting.
+    #   session = account.resumable_upload_video(drive_url,
+    #     remote_auth:     -> { account.access_token },
     #     remote_url_auth: -> { user.access_token },
     #     title: 'My Video',
-    #     privacy_status: 'private',
-    #     self_declared_made_for_kids: false,
     #     chunk_size: 10 * 1024 * 1024
     #   )
     #   video = session.perform do |bytes_uploaded, file_size|
-    #     percent = (bytes_uploaded * 100.0 / file_size).round
-    #     upload.broadcast_replace_to(
-    #       [user, "uploads"],
-    #       target: "upload_progress_#{upload.id}",
-    #       partial: "uploads/progress",
-    #       locals: { upload: upload, percent: percent }
-    #     )
+    #     # report progress
     #   end
     class ResumableUploadSession < Base
       include Actions::Upload

@@ -37,7 +37,6 @@ module Yt
         super.tap do |params|
           params[:response_format] = nil
           params[:path] = @parent.resumable_upload_path
-          # params[:method] = :post
           options = @insert_options.slice(:on_behalf_of_content_owner_channel)
           params[:params] = @parent.resumable_upload_params(options).merge uploadType: 'resumable'
         end

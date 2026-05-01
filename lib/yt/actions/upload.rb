@@ -8,7 +8,6 @@ module Yt
 
       private
 
-      # Yielding the raw response so callers handle status codes themselves.
       def do_upload(extra_upload_params = {})
         params = upload_params.merge(extra_upload_params)
         uri = params[:uri]
