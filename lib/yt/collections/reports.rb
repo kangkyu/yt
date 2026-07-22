@@ -126,10 +126,11 @@ module Yt
 
       attr_writer :metrics
 
-      def within(days_range, country, state, dimension, videos, historical, max_retries = 3)
+      def within(days_range, country, state, dimension, videos, historical, third_party, max_retries = 3)
         @days_range = days_range
         @country = country
         @state = state
+        @third_party = third_party
         @dimension = dimension
         @videos = videos
         @historical = historical
@@ -208,10 +209,11 @@ module Yt
               params['sort'] = "-#{@metrics.keys.join(',').to_s.camelize(:lower)}"
             end
           end
-          params[:filters] = "video==#{@videos.join ','}" if @videos
+          params[:filters] = ((params[:filters] || '').split(';') + ["video==#{@videos.join ','}"]).compact.uniq.join(';') if @videos
           params[:filters] = ((params[:filters] || '').split(';') + ["country==US"]).compact.uniq.join(';') if @dimension == :state && !@state
           params[:filters] = ((params[:filters] || '').split(';') + ["country==#{@country}"]).compact.uniq.join(';') if @country && !@state
           params[:filters] = ((params[:filters] || '').split(';') + ["province==US-#{@state}"]).compact.uniq.join(';') if @state
+          params[:filters] = ((params[:filters] || '').split(';') + ["claimedStatus==claimed", "uploaderType==thirdParty"]).compact.uniq.join(';') if @third_party
           params[:filters] = ((params[:filters] || '').split(';') + ['insightPlaybackLocationType==EMBEDDED']).compact.uniq.join(';') if @dimension == :embedded_player_location
           params[:filters] = ((params[:filters] || '').split(';') + ['insightTrafficSourceType==RELATED_VIDEO']).compact.uniq.join(';') if @dimension == :related_video
           params[:filters] = ((params[:filters] || '').split(';') + ['insightTrafficSourceType==YT_SEARCH']).compact.uniq.join(';') if @dimension == :search_term
