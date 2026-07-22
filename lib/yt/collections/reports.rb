@@ -163,7 +163,7 @@ module Yt
       # same query is a workaround that works and can hardly cause any damage.
       # Similarly, once in while YouTube responds with a random 503 error.
       rescue Yt::Error => e
-        (max_retries > 0) && rescue?(e) ? sleep(retry_time) && within(days_range, country, state, dimension, videos, historical, max_retries - 1) : raise
+        (max_retries > 0) && rescue?(e) ? sleep(retry_time) && within(days_range, country, state, dimension, videos, historical, third_party, max_retries - 1) : raise
       end
 
     private
