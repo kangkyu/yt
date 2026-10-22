@@ -219,6 +219,25 @@ module Yt
         end
       end
 
+      # Reports have no page tokens: the next rows start at startIndex.
+      def fetch_page(params = {})
+        params[:params]['startIndex'] = @items.size + 1 if paginated?
+        super.tap do |page|
+          @more_rows = paginated? && page[:items].size == params[:params]['maxResults']
+        end
+      end
+
+      def more_pages?
+        super || @more_rows
+      end
+
+      # Only reports by video of the given videos, which can be more than
+      # maxResults, go on to the next rows. Other reports with maxResults
+      # are the top results.
+      def paginated?
+        @dimension == :video && @videos.present?
+      end
+
       def items_key
         'rows'
       end
