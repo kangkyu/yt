@@ -201,12 +201,16 @@ module Yt
           params['includeHistoricalChannelData'] = @historical if @historical
           params['maxResults'] = 50 if @dimension.in? [:playlist, :video]
           params['maxResults'] = 25 if @dimension.in? [:embedded_player_location, :related_video, :search_term, :referrer]
-          if @dimension.in? [:video, :playlist, :embedded_player_location, :related_video, :search_term, :referrer]
+          if @dimension.in? [:video, :playlist]
             if @metrics.keys == [:estimated_revenue, :estimated_minutes_watched]
               params['sort'] = '-estimatedRevenue'
             else
               params['sort'] = "-#{@metrics.keys.join(',').to_s.camelize(:lower)}"
             end
+          end
+          # YouTube returns error when sort metrics are multiple. Use only the first one.
+          if @dimension.in? [:embedded_player_location, :related_video, :search_term, :referrer]
+            params['sort'] = "-#{@metrics.keys.first.to_s.camelize(:lower)}"
           end
           params[:filters] = "video==#{@videos.join ','}" if @videos
           params[:filters] = ((params[:filters] || '').split(';') + ["country==US"]).compact.uniq.join(';') if @dimension == :state && !@state
