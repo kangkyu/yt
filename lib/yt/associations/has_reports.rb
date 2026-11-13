@@ -228,6 +228,7 @@ module Yt
           location = options[:in]
           country = location.is_a?(Hash) ? location[:country] : location
           state = location[:state] if location.is_a?(Hash)
+          third_party = options[:third_party]
           dimension = options[:by] || (metric == :viewer_percentage ? :gender_age_group : :range)
           videos = options[:videos]
           historical = options[:historical].to_s if [true, false].include?(options[:historical])
@@ -241,7 +242,7 @@ module Yt
           reports = Collections::Reports.of(self).tap do |reports|
             reports.metrics = self.class.instance_variable_get(:@metrics).select{|k, v| k.in? only}
           end
-          reports.within date_range, country, state, dimension, videos, historical
+          reports.within date_range, country, state, dimension, videos, historical, third_party
         end unless defined?(reports)
       end
 
@@ -252,6 +253,7 @@ module Yt
           location = options[:in]
           country = location.is_a?(Hash) ? location[:country] : location
           state = location[:state] if location.is_a?(Hash)
+          third_party = options[:third_party]
           dimension = options[:by] || (metric == :viewer_percentage ? :gender_age_group : :range)
           videos = options[:videos]
           historical = options[:historical].to_s if [true, false].include?(options[:historical])
@@ -266,10 +268,10 @@ module Yt
           results = case dimension
           when :day
             Hash[*range.flat_map do |date|
-              [date, instance_variable_get("@#{metric}_#{dimension}_#{country}_#{state}")[date] ||= send("range_#{metric}", range, dimension, country, state, videos, historical)[date]]
+              [date, instance_variable_get("@#{metric}_#{dimension}_#{country}_#{state}")[date] ||= send("range_#{metric}", range, dimension, country, state, videos, historical, third_party)[date]]
             end]
           else
-            instance_variable_get("@#{metric}_#{dimension}_#{country}_#{state}")[range] ||= send("range_#{metric}", range, dimension, country, state, videos, historical)
+            instance_variable_get("@#{metric}_#{dimension}_#{country}_#{state}")[range] ||= send("range_#{metric}", range, dimension, country, state, videos, historical, third_party)
           end
           lookup_class = case options[:by]
             when :video, :related_video then Yt::Collections::Videos
@@ -286,10 +288,10 @@ module Yt
       end
 
       def define_range_metric_method(metric)
-        define_method "range_#{metric}" do |date_range, dimension, country, state, videos, historical|
+        define_method "range_#{metric}" do |date_range, dimension, country, state, videos, historical, third_party|
           ivar = instance_variable_get "@range_#{metric}_#{dimension}_#{country}_#{state}"
           instance_variable_set "@range_#{metric}_#{dimension}_#{country}_#{state}", ivar || {}
-          instance_variable_get("@range_#{metric}_#{dimension}_#{country}_#{state}")[date_range] ||= send("all_#{metric}").within date_range, country, state, dimension, videos, historical
+          instance_variable_get("@range_#{metric}_#{dimension}_#{country}_#{state}")[date_range] ||= send("all_#{metric}").within date_range, country, state, dimension, videos, historical, third_party
         end
         private "range_#{metric}"
       end
